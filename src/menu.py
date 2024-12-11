@@ -5,9 +5,9 @@ from src.inventario import Inventario
 import multiprocessing
 
 class Menu:
-    def __init__(self):
+    def __init__(self, inventario):
         manager = multiprocessing.Manager()
-        self.inventario = Inventario()
+        self.inventario = inventario
         self.gestor = GestorPedidos(manager)
         self.lock = multiprocessing.Lock()
 

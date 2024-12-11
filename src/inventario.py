@@ -1,9 +1,12 @@
+from multiprocessing import Manager
+
 class Inventario:
     def __init__(self):
         """
-        Inicializa el inventario con valores predeterminados.
+        Inicializa el inventario con un diccionario compartido.
         """
-        self.stock = {
+        manager = Manager()
+        self.stock = manager.dict({
             "pan": 50,
             "queso": 30,
             "jamón": 25,
@@ -12,7 +15,7 @@ class Inventario:
             "bebidas": 60,
             "salsas": 100,
             "ensalada": 15
-        }
+        })
 
     def existe_producto(self, producto):
         """
@@ -28,17 +31,18 @@ class Inventario:
         :param items: Diccionario con productos y cantidades.
         :return: True si se pudo procesar, False si falta stock.
         """
+        # Verificar si hay suficiente stock
         for item, cantidad in items.items():
             if self.stock.get(item, 0) < cantidad:
                 return False  # Faltan recursos
-        
-        # Actualizar inventario si hay suficiente stock
+
+        # Reducir el inventario
         for item, cantidad in items.items():
-            self.stock[item] -= cantidad
+            self.stock[item] -= cantidad  # Aquí se actualiza el inventario
         return True
 
     def consultar_inventario(self):
         """
         Devuelve el inventario actual.
         """
-        return self.stock
+        return dict(self.stock)  # Convertir a un diccionario estándar para mostrar
