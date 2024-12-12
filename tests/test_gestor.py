@@ -1,5 +1,5 @@
 import unittest
-from multiprocessing import Manager, Lock
+from multiprocessing import Manager, Lock, Barrier
 from src.pedido import Pedido
 from src.gestor import GestorPedidos
 from src.inventario import Inventario
@@ -16,7 +16,7 @@ class TestGestorPedidos(unittest.TestCase):
         self.manager = Manager()
         self.lock = Lock()
         self.inventario = Inventario()
-        self.gestor = GestorPedidos(self.manager)
+        self.gestor = GestorPedidos(self.manager, self.inventario)
 
     def generar_pedido_aleatorio(self):
         """
@@ -44,13 +44,17 @@ class TestGestorPedidos(unittest.TestCase):
         for pedido in pedidos:
             self.gestor.recibir_pedido(pedido)
 
+        # Crear barrera para sincronizar procesos
+        barrier = multiprocessing.Barrier(4)
+        informe_generado = multiprocessing.Value('b', False)  # Compartido entre procesos
+
         # Procesar los pedidos
         procesos = []
-        inicio = time.time()
+        tiempo_inicio = time.time()
         for _ in range(4):  # Procesar con 4 procesos en paralelo
             proceso = multiprocessing.Process(
                 target=self.gestor.procesar_pedido,
-                args=(self.inventario, self.lock)
+                args=(self.inventario, self.lock, barrier, num_pedidos, tiempo_inicio, informe_generado)
             )
             procesos.append(proceso)
             proceso.start()
@@ -58,21 +62,15 @@ class TestGestorPedidos(unittest.TestCase):
         for proceso in procesos:
             proceso.join()
 
-        fin = time.time()
-
         # Validar resultados
         completados = len(self.gestor.pedidos_completados)
         no_procesados = len(self.gestor.pedidos_no_procesados)
 
-        print("\n=== INFORME FINAL ===")
-        print(f"Total de pedidos generados: {num_pedidos}")
-        print(f"Pedidos completados: {completados}")
-        print(f"Pedidos no procesados: {no_procesados}")
-        print("\nEstado final del inventario:")
-        for item, cantidad in self.inventario.consultar_inventario().items():
-            print(f"{item}: {cantidad}")
-        print(f"\nTiempo total de procesamiento: {fin - inicio:.2f} segundos")
-
-        # Asegurar que se procesaron algunos pedidos
         self.assertGreater(completados, 0)
         self.assertEqual(completados + no_procesados, num_pedidos)
+
+
+
+
+        
+

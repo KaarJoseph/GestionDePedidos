@@ -12,7 +12,7 @@ class Menu:
         :param manager: Multiprocessing Manager para gestionar listas compartidas.
         """
         self.inventario = inventario
-        self.gestor = GestorPedidos(manager)
+        self.gestor = GestorPedidos(manager, inventario)
         self.lock = multiprocessing.Lock()
 
     def mostrar_menu(self):
