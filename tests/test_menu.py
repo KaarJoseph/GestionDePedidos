@@ -24,8 +24,9 @@ class TestMenu(unittest.TestCase):
         self.menu.agregar_pedido()
         # Validar que se agregó el pedido
         self.assertEqual(len(self.menu.gestor.pedidos), 1)
-        # Ajusta el mensaje según lo que realmente imprime tu código
-        mock_print.assert_any_call("Pedido creado correctamente.")
+        # Ajustar el mensaje dinámico con el formato esperado
+        pedido = self.menu.gestor.pedidos[0]
+        mock_print.assert_any_call(f"Pedido {pedido.pedido_id} creado correctamente.")
 
     @patch('builtins.print')
     @patch('builtins.input', side_effect=["2"])
