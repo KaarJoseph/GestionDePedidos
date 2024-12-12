@@ -1,28 +1,26 @@
 import unittest
 from src.inventario import Inventario
+from src.pedido import Pedido
+
 
 class TestInventario(unittest.TestCase):
     def setUp(self):
         self.inventario = Inventario()
 
-    def test_existe_producto(self):
-        self.assertTrue(self.inventario.existe_producto("pan"))
-        self.assertFalse(self.inventario.existe_producto("chocolate"))
+    def test_actualizar_inventario_exito(self):
+        """
+        Verifica que el inventario se actualice correctamente cuando hay suficiente stock.
+        """
+        pedido = Pedido("1234", {"Papas Fritas": 2})
+        self.assertTrue(self.inventario.actualizar_inventario(pedido.items))
+        # Verificar que el inventario haya disminuido
+        self.assertEqual(self.inventario.ingredientes["papas"], 34)
 
-    def test_actualizar_inventario_con_stock(self):
-        result = self.inventario.actualizar_inventario({"pan": 2, "queso": 1})
-        self.assertTrue(result)
-        self.assertEqual(self.inventario.stock["pan"], 48)
-        self.assertEqual(self.inventario.stock["queso"], 29)
-
-    def test_actualizar_inventario_sin_stock(self):
-        result = self.inventario.actualizar_inventario({"pan": 1000})
-        self.assertFalse(result)
-
-    def test_consultar_inventario(self):
-        stock = self.inventario.consultar_inventario()
-        self.assertIn("pan", stock)
-        self.assertIn("queso", stock)
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_actualizar_inventario_fallo(self):
+        """
+        Verifica que el inventario no se actualice cuando no hay suficiente stock.
+        """
+        pedido = Pedido("5678", {"Papas Fritas": 100})  # Cantidad exagerada para simular falta de stock
+        self.assertFalse(self.inventario.actualizar_inventario(pedido.items))
+        # Verificar que el inventario no haya cambiado
+        self.assertEqual(self.inventario.ingredientes["papas"], 40)

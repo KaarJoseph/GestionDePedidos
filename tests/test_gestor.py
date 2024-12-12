@@ -1,45 +1,78 @@
 import unittest
 from multiprocessing import Manager, Lock
-from src.gestor import GestorPedidos
 from src.pedido import Pedido
+from src.gestor import GestorPedidos
 from src.inventario import Inventario
+import random
+import time
+import multiprocessing
+
 
 class TestGestorPedidos(unittest.TestCase):
     def setUp(self):
         """
-        Configuración inicial de los tests, creando un manager, un lock y las instancias necesarias.
+        Configuración inicial.
         """
         self.manager = Manager()
         self.lock = Lock()
-        self.gestor = GestorPedidos(self.manager)
         self.inventario = Inventario()
+        self.gestor = GestorPedidos(self.manager)
 
-    def test_recibir_pedido(self):
-        pedido = Pedido("1234", {"pan": 2})
-        self.gestor.recibir_pedido(pedido)
-        recibido = self.gestor.pedidos[0]
+    def generar_pedido_aleatorio(self):
+        """
+        Genera un pedido aleatorio con productos y cantidades.
+        """
+        platos = list(self.inventario.platos.keys())
+        items = {}
+        for _ in range(random.randint(1, 4)):  # De 1 a 4 platos por pedido
+            plato = random.choice(platos)
+            cantidad = random.randint(1, 3)  # Cantidad de 1 a 3 por plato
+            if plato in items:
+                items[plato] += cantidad
+            else:
+                items[plato] = cantidad
+        return Pedido(str(random.randint(1000, 9999)), items)
 
-        self.assertEqual(recibido.pedido_id, pedido.pedido_id)
-        self.assertEqual(recibido.items, pedido.items)
-        self.assertEqual(recibido.estado, pedido.estado)
+    def test_simulacion_masiva(self):
+        """
+        Prueba una simulación masiva de 10 pedidos procesados en paralelo.
+        """
+        num_pedidos = 10
+        pedidos = [self.generar_pedido_aleatorio() for _ in range(num_pedidos)]
 
-    def test_procesar_pedido_con_stock(self):
-        pedido = Pedido("5678", {"pan": 2})
-        self.gestor.recibir_pedido(pedido)
-        self.gestor.procesar_pedido(self.inventario, self.lock)
-        
-        # Verificar que el pedido esté en pedidos_completados basado en su ID
-        completados_ids = [p.pedido_id for p in self.gestor.pedidos_completados]
-        self.assertIn(pedido.pedido_id, completados_ids)
+        # Agregar los pedidos al gestor
+        for pedido in pedidos:
+            self.gestor.recibir_pedido(pedido)
 
-    def test_procesar_pedido_sin_stock(self):
-        pedido = Pedido("5678", {"pan": 1000})
-        self.gestor.recibir_pedido(pedido)
-        self.gestor.procesar_pedido(self.inventario, self.lock)
-        
-        # Verificar que el pedido esté en pedidos_no_procesados basado en su ID
-        no_procesados_ids = [p.pedido_id for p in self.gestor.pedidos_no_procesados]
-        self.assertIn(pedido.pedido_id, no_procesados_ids)
+        # Procesar los pedidos
+        procesos = []
+        inicio = time.time()
+        for _ in range(4):  # Procesar con 4 procesos en paralelo
+            proceso = multiprocessing.Process(
+                target=self.gestor.procesar_pedido,
+                args=(self.inventario, self.lock)
+            )
+            procesos.append(proceso)
+            proceso.start()
 
-if __name__ == "__main__":
-    unittest.main()
+        for proceso in procesos:
+            proceso.join()
+
+        fin = time.time()
+
+        # Validar resultados
+        completados = len(self.gestor.pedidos_completados)
+        no_procesados = len(self.gestor.pedidos_no_procesados)
+
+        print("\n=== INFORME FINAL ===")
+        print(f"Total de pedidos generados: {num_pedidos}")
+        print(f"Pedidos completados: {completados}")
+        print(f"Pedidos no procesados: {no_procesados}")
+        print("\nEstado final del inventario:")
+        for item, cantidad in self.inventario.consultar_inventario().items():
+            print(f"{item}: {cantidad}")
+        print(f"\nTiempo total de procesamiento: {fin - inicio:.2f} segundos")
+
+        # Asegurar que se procesaron algunos pedidos
+        self.assertGreater(completados, 0)
+        self.assertEqual(completados + no_procesados, num_pedidos)

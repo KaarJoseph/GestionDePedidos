@@ -2,16 +2,19 @@ import unittest
 from src.pedido import Pedido
 
 class TestPedido(unittest.TestCase):
-    def test_crear_pedido(self):
-        pedido = Pedido("1234", {"pan": 2, "queso": 1})
+    def test_creacion_pedido(self):
+        """
+        Verifica que se pueda crear un pedido con un ID y productos.
+        """
+        pedido = Pedido("1234", {"Papas Fritas": 2, "Bebida": 1})
         self.assertEqual(pedido.pedido_id, "1234")
-        self.assertEqual(pedido.items, {"pan": 2, "queso": 1})
-        self.assertEqual(pedido.estado, "pendiente")
+        self.assertEqual(pedido.items, {"Papas Fritas": 2, "Bebida": 1})
+        self.assertEqual(pedido.estado, Pedido.ESTADO_PENDIENTE)
 
-    def test_estado_pedido(self):
-        pedido = Pedido("5678", {"papas": 3})
-        pedido.estado = "en preparación"
-        self.assertEqual(pedido.estado, "en preparación")
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_actualizar_estado(self):
+        """
+        Verifica que se pueda actualizar el estado del pedido.
+        """
+        pedido = Pedido("1234", {"Papas Fritas": 2})
+        pedido.estado = Pedido.ESTADO_COMPLETADO
+        self.assertEqual(pedido.estado, Pedido.ESTADO_COMPLETADO)

@@ -2,47 +2,58 @@ from multiprocessing import Manager
 
 class Inventario:
     def __init__(self):
-        """
-        Inicializa el inventario con un diccionario compartido.
-        """
         manager = Manager()
-        self.stock = manager.dict({
+        self.platos = manager.dict({
+            "Hamburguesa Clásica": {"pan": 2, "queso": 1, "hamburguesa": 1},
+            "Papas Fritas": {"papas": 3},
+            "Bebida": {"bebidas": 1},
+            "Pizza Margarita": {"queso": 2, "pan": 1},
+            "Ensalada César": {"ensalada": 1, "queso": 1, "pan": 1},
+            "Sandwich Club": {"pan": 3, "queso": 2, "jamón": 1}
+        })
+        self.ingredientes = manager.dict({
             "pan": 50,
             "queso": 30,
-            "jamón": 25,
-            "papas": 40,
             "hamburguesa": 20,
+            "papas": 40,
             "bebidas": 60,
-            "salsas": 100,
-            "ensalada": 15
+            "ensalada": 15,
+            "jamón": 10
         })
 
-    def existe_producto(self, producto):
+    def existe_plato(self, plato):
         """
-        Verifica si un producto existe en el inventario.
-        :param producto: Nombre del producto.
-        :return: True si existe, False en caso contrario.
+        Verifica si un plato existe en el menú.
         """
-        return producto in self.stock
+        return plato in self.platos
 
     def actualizar_inventario(self, items):
         """
-        Actualiza el inventario si hay stock suficiente.
-        :param items: Diccionario con productos y cantidades.
-        :return: True si se pudo procesar, False si falta stock.
+        Verifica y actualiza los ingredientes si hay suficiente stock para cada plato.
+        :param items: Diccionario con platos y cantidades.
+        :return: True si se pudo procesar, False si falta stock para algún plato.
         """
-        # Verificar si hay suficiente stock
-        for item, cantidad in items.items():
-            if self.stock.get(item, 0) < cantidad:
-                return False  # Faltan recursos
+        # Verificar si hay suficiente stock para cada plato
+        for plato, cantidad_platos in items.items():
+            if plato not in self.platos:
+                return False  # Plato no existe en el menú
 
-        # Reducir el inventario
-        for item, cantidad in items.items():
-            self.stock[item] -= cantidad  # Aquí se actualiza el inventario
+            # Verificar los ingredientes necesarios para este plato
+            ingredientes_necesarios = self.platos[plato]
+            for ingrediente, cantidad_necesaria in ingredientes_necesarios.items():
+                if self.ingredientes.get(ingrediente, 0) < cantidad_necesaria * cantidad_platos:
+                    return False  # Faltan recursos
+
+        # Reducir inventario si todo está disponible
+        for plato, cantidad_platos in items.items():
+            ingredientes_necesarios = self.platos[plato]
+            for ingrediente, cantidad_necesaria in ingredientes_necesarios.items():
+                self.ingredientes[ingrediente] -= cantidad_necesaria * cantidad_platos
+
         return True
 
     def consultar_inventario(self):
         """
-        Devuelve el inventario actual.
+        Devuelve el estado actual del inventario.
         """
-        return dict(self.stock)  # Convertir a un diccionario estándar para mostrar
+        return dict(self.ingredientes)
